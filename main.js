@@ -4,6 +4,7 @@ import { OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import { AxesHelper } from 'three';
 import {MazeGen} from './mazeGen.js';
 import { AStarMazeSolver } from './aStarMazeSolver';
+import {KeyboardState} from './keyboardState'
 
 // MAIN
 
