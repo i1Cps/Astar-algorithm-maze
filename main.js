@@ -4,7 +4,7 @@ import { OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import { AxesHelper } from 'three';
 import {MazeGen} from './mazeGen.js';
 import { AStarMazeSolver } from './aStarMazeSolver';
-import {KeyboardState} from './keyboardState'
+import KeyboardInputs from './keyboardInputs'
 
 // MAIN
 
@@ -17,7 +17,7 @@ const sizes = {
 // STANDARD GLOBAL VARIABLES
 var scene, camera, renderer, controls;
 var clock = new THREE.Clock();
-var keyboard = new KeyboardState()
+KeyboardInputs.initialize();
 
 // CUSTOM GLOBAL VARIABLES
 var topCamera;
@@ -127,7 +127,7 @@ function animate() {
 }
 
 function update() {
-  keyboard.update();
+  KeyboardInputs.update();
   controls.update();
 }
 
