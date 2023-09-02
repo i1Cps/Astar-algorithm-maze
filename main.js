@@ -2,7 +2,8 @@ import './style.css'
 import * as THREE from 'three';
 import { OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import { AxesHelper } from 'three';
-import {mazeGen} from './mazeGen.js';
+import {MazeGen} from './mazeGen.js';
+import { AStarMazeSolver } from './aStarMazeSolver';
 
 // MAIN
 
@@ -19,11 +20,11 @@ var keyboard = new KeyboardState()
 
 // CUSTOM GLOBAL VARIABLES
 var topCamera;
-let newMaze;
 let solver;
-
+let maze;
 //CUSTOM GLOBAL CONSTANTS
 const yhhhhhhMan = "getslikethat"
+
 
 init();
 animate();
@@ -41,10 +42,8 @@ function init() {
     NEAR,
     FAR
   );  
-  //camera.position.setX(80);
-  //camera.position.setZ(80);
+  
   camera.position.set(0,10,250);
-  //camera.position.setX(100);
   
   // RENDERER
   renderer = new THREE.WebGLRenderer({
@@ -88,34 +87,35 @@ function init() {
   const spaceTexture = new THREE.TextureLoader().load('space.jpg');
   scene.background = spaceTexture;
 
-  newMaze = new mazeGen.Maze(200, 10, 10,scene);
-  newMaze.setup()
-  newMaze.draw()
+  maze = new MazeGen(200, 10, 10,scene);
+  maze.setup()
+  //maze.createMaze()
 }
 
 //Animate
 function animate() {
   // Generate the maze
-  if(newMaze.mazeComplete === false) {
-   newMaze.draw()
+  if(maze.mazeComplete === false) {
+    maze.createMaze()
   }
   else {
     // If maze is not currently being solved, initialize the solving setup function
-    if(newMaze.solving == false) {
-      newMaze.solving = true;
-      let start = newMaze.grid[0][0]
-      let finish = newMaze.grid[newMaze.rows-1][newMaze.columns-1]
-      let parentGridSizes = [newMaze.size, newMaze.rows, newMaze.columns]
+    if(maze.solving == false) {
+      maze.solving = true;
+      let start = maze.grid[0][0]
+      let finish = maze.grid[maze.rows-1][maze.columns-1]
+      let mazeSizes = [maze.size, maze.rows, maze.columns]
 
-      solver = new mazeGen.MazeSolver(start,finish, newMaze.grid, parentGridSizes)
+      solver = new AStarMazeSolver(start,finish, maze.grid, mazeSizes)
       solver.setup()
     }
-    // Now recursively draw code finding the best path
+
+    // recusively call
     else {
       if(solver.solved == false) {
-        solver.draw();
+        solver.solveStep();
       } else if(solver.backtracking == true) {
-        solver.draw();
+        solver.solveStep();
       }
     }
   }
