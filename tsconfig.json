@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+      "target": "ES6",
+      "module": "commonjs",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "jsx": "react",
+      "sourceMap": true,
+      "outDir": "./dist",
+      "rootDir": "./src",
+      "strictNullChecks": true,
+      "allowSyntheticDefaultImports": true,
+      "resolveJsonModule": true,
+      "declaration": true
+    },
+    "include": ["src/**/*.ts", "src/**/*.tsx"],
+    "exclude": ["node_modules"]
+  }
