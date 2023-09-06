@@ -8,4 +8,3 @@ export enum Colours {
     purpleColour = 0x800080,
     greyColour = 0xb2beb5,
 }
-
