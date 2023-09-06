@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import {MazeCell} from "./mazeCell"
+import { MazeCell } from "./mazeCell";
 import { Colours } from "./interfaces/colours";
 
 // This class contains the logic for the maze itself
@@ -16,7 +16,12 @@ export class Maze {
     private width: number;
     private height: number;
 
-    constructor(size: number, rows: number, columns: number, scene:THREE.Scene) {
+    constructor(
+        size: number,
+        rows: number,
+        columns: number,
+        scene: THREE.Scene
+    ) {
         this.size = size;
         this.rows = rows;
         this.columns = columns;
@@ -66,39 +71,40 @@ export class Maze {
 
     // Create Maze
     createMaze() {
-        if(this.current){
+        if (this.current) {
             if (this.mazeComplete == false) {
-                    // Randomly choose neighbour as new cell
-                    let next = this.current.checkNeighbours();
+                // Randomly choose neighbour as new cell
+                let next = this.current.checkNeighbours();
 
-                    // remove green highlight from "current" cell and add it to "next" cell
-                    this.current.removeCellColour(this.current, Colours.greenColour);
+                // remove green highlight from "current" cell and add it to "next" cell
+                this.current.removeCellColour(
+                    this.current,
+                    Colours.greenColour
+                );
 
-                    // If neighbour cell was found
-                    if (next) {
-                        next.setConnected(true);
-                        // Put green square in cell
-                        next.fillCellColour(
-                            next.getColumnNumber(),
-                            next.getRowNumber(),
-                            this.size,
-                            this.rows,
-                            this.columns,
-                            Colours.greenColour,
-                            false
-                        );
-                        this.stack.push(this.current);
+                // If neighbour cell was found
+                if (next) {
+                    next.setConnected(true);
+                    // Put green square in cell
+                    next.fillCellColour(
+                        next.getColumnNumber(),
+                        next.getRowNumber(),
+                        this.size,
+                        this.rows,
+                        this.columns,
+                        Colours.greenColour,
+                        false
+                    );
+                    this.stack.push(this.current);
 
-                        // Remove wall between given current cell and its neighbour cell 'next'
-                        this.current.removeWall(this.current, next);
-                        this.current = next;
-                    
-
+                    // Remove wall between given current cell and its neighbour cell 'next'
+                    this.current.removeWall(this.current, next);
+                    this.current = next;
                 } else if (this.stack.length > 0) {
                     // This part is basically backtracking if its hit a dead end
                     // back tracks to the last cell in the stack that has a non connected neighbour
                     let cell = this.stack.pop();
-                    if(cell) {
+                    if (cell) {
                         this.current = cell;
                         // Put green square in cell
                         cell.fillCellColour(
@@ -112,12 +118,15 @@ export class Maze {
                         );
                     }
                 }
-                
+
                 // If no neighbour cells are found and stack is empty the maze has been generated
                 if (this.stack.length == 0) {
                     console.log("Maze has been generated");
                     // Remove green square since maze has been generated
-                    this.current.removeCellColour(this.current, Colours.greenColour);
+                    this.current.removeCellColour(
+                        this.current,
+                        Colours.greenColour
+                    );
                     this.mazeComplete = true;
                 }
                 return;
@@ -125,24 +134,24 @@ export class Maze {
                 console.log("Maze already generated");
             }
         } else {
-            console.log("Setup function was not executed properly")
+            console.log("Setup function was not executed properly");
         }
     }
 
     // Getters and Setters
-    getSolving():boolean{
+    getSolving(): boolean {
         return this.solving;
     }
 
-    setSolving(value:boolean) {
+    setSolving(value: boolean) {
         this.solving = value;
     }
 
-    getMazeComplete():boolean{
+    getMazeComplete(): boolean {
         return this.mazeComplete;
     }
 
-    getMazeGrid():MazeCell[][]{
+    getMazeGrid(): MazeCell[][] {
         return this.grid;
     }
 }
