@@ -1,17 +1,28 @@
 import * as THREE from 'three';
-
-const greenColour = 0x39ff14;
-const whiteColour = 0xffffff;
-const yellowColour = 0xfbf10b;
-const redColour = 0xff0000;
-const blueColour = 0x0000ff;
-const orangeColour = 0xffa500;
-const purpleColour = 0x800080;
-const greyColour = 0xb2beb5;
+import {Maze} from "./maze"
+import { walls, cellObjects } from './interfaces/types';
+import { Colours } from './interfaces/colours';
 
 // This class handles the logic for each cell in the maze
 export class MazeCell{
-    constructor(rowNumber,columnNumber, parentGrid, parentGridSize, scene) {
+    private rowNumber: number;
+    private columnNumber: number;
+    private parentGrid: MazeCell[][];
+    private parentGridSize: number;
+    private scene: THREE.Scene;
+    private nextCell: MazeCell | null;
+    private previousCell: MazeCell | null;
+    private connected: boolean;
+    private highlighted: boolean;
+    private greenColour: boolean;
+    private greyColour: boolean;
+    private yellowColour: boolean;
+    private walls: walls;
+    private cellObjects: cellObjects;
+    private gscore: number;
+    private fscore: number;
+
+    constructor(rowNumber: number,columnNumber: number, parentGrid: MazeCell[][], parentGridSize: number, scene: THREE.Scene) {
       this.rowNumber = rowNumber;
       this.columnNumber = columnNumber;
       this.parentGrid = parentGrid;
@@ -23,9 +34,9 @@ export class MazeCell{
       this.connected = false;
       // Purple square
       this.highlighted = false;
-      this.green_colour = false;
-      this.grey_colour = false;
-      this.yellow_colour = false;
+      this.greenColour = false;
+      this.greyColour = false;
+      this.yellowColour = false;
       this.walls = {
         topWall: true,
         leftWall: true,
@@ -33,13 +44,13 @@ export class MazeCell{
         bottomWall: true,
       };
       this.cellObjects = {
-        topWall: 1,
-        leftWall: 2,
-        rightWall: 3,
-        bottomWall: 4,
-        greenSquare: 5,
-        greySquare: 6,
-        yellowSquare: 7
+        topWall: null,
+        leftWall: null,
+        rightWall: null,
+        bottomWall: null,
+        greenSquare: null,
+        greySquare: null,
+        yellowSquare: null
       };
       // Since g score and f score are unknown at first, make them infinite numbers
       this.gscore = 9999999999;
@@ -52,14 +63,14 @@ export class MazeCell{
       let row = this.rowNumber;
       let col = this.columnNumber
       
-      let neighbours = []
+      let neighbours: MazeCell[] = []
       // Get the cells neighbours
       let top = row !== 0 ? grid[row - 1][col] : undefined
       let bottom = row !== grid.length - 1 ? grid[row + 1][this.columnNumber] : undefined
       let left = col !== 0 ? grid[row][col - 1] : undefined
       let right = col !== grid[row].length - 1 ? grid[row][col + 1] : undefined
   
-      // If neighbours exists and isnt connected, add it to neighbours array
+      // If neighbour exists and isnt connected, add it to neighbours array
       if(top && !top.connected) neighbours.push(top)
       if(bottom && !bottom.connected) neighbours.push(bottom)
       if(left && !left.connected) neighbours.push(left)
@@ -75,11 +86,11 @@ export class MazeCell{
     }
     
     // This function creates a wall on the top side of the cell
-    drawTopWall(x,y,parentGridSize, columns,rows) {
+    drawTopWall(x: number,y: number, parentGridSize: number, columns: number,rows: number) {
       // Create wall object
       const wall = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(parentGridSize/ columns,1,1),
-        new THREE.MeshLambertMaterial({color: blueColour})
+        new THREE.BoxGeometry(parentGridSize/ columns,1,1),
+        new THREE.MeshLambertMaterial({color: Colours.blueColour})
       );
       this.scene.add(wall)
       
@@ -102,11 +113,11 @@ export class MazeCell{
     }
     
     // This function creates a wall on the left side of the cell
-    drawLeftWall(x,y,parentGridSize, columns,rows) {
+    drawLeftWall(x: number,y: number, parentGridSize: number, columns: number,rows: number) {
       // Create wall object
       const wall = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(1,parentGridSize/rows,1),
-        new THREE.MeshLambertMaterial({color: blueColour})
+        new THREE.BoxGeometry(1,parentGridSize/rows,1),
+        new THREE.MeshLambertMaterial({color: Colours.blueColour})
       );
       this.scene.add(wall)
   
@@ -129,11 +140,11 @@ export class MazeCell{
     }
     
     // This function creates a wall on the right side of the cell
-    drawRightWall(x,y, parentGridSize,columns,rows) {
+    drawRightWall(x: number,y: number, parentGridSize: number, columns: number,rows: number) {
       // Create wall object
       const wall = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(1,this.parentGridSize/ rows,1),
-        new THREE.MeshLambertMaterial({color: blueColour})
+        new THREE.BoxGeometry(1,this.parentGridSize/ rows,1),
+        new THREE.MeshLambertMaterial({color: Colours.blueColour})
       );
       this.scene.add(wall)
   
@@ -156,11 +167,11 @@ export class MazeCell{
     }
     
     // This function creates a wall on the bottom side of the cell
-    drawBottomWall(x,y, parentGridSize, columns,rows) {
+    drawBottomWall(x: number,y: number, parentGridSize: number, columns: number,rows: number) {
       // Create wall object
       const wall = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(this.parentGridSize/columns,1,1),
-        new THREE.MeshLambertMaterial({color: blueColour})
+        new THREE.BoxGeometry(this.parentGridSize/columns,1,1),
+        new THREE.MeshLambertMaterial({color: Colours.blueColour})
       );
       this.scene.add(wall)
   
@@ -183,7 +194,7 @@ export class MazeCell{
     }
 
     // When maze outputs the final path, we need to handle the direction of the lines
-    fillBackTrackLine(number,x,y,parentGridSize,columms,rows,colour) {
+    fillBackTrackLine(lineType: number, x: number,y: number, parentGridSize: number, columns: number,rows: number, colour: number) {
       // 1 = vertical line
       // 2 = horizontal line
       // 3 = (bottom to right/right to bottom)
@@ -195,9 +206,9 @@ export class MazeCell{
       const depth = 1;
       const zpos = 5; 
       // Vertical Line
-      if(number == 1) {
+      if(lineType == 1) {
         const verticalLine = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.2,this.parentGridSize/rows * 1,depth),
+        new THREE.BoxGeometry(this.parentGridSize/columns *0.2,this.parentGridSize/rows * 1,depth),
         new THREE.MeshLambertMaterial({color: colour})
         );
         this.scene.add(verticalLine);
@@ -205,18 +216,18 @@ export class MazeCell{
         const initialX = -parentGridSize/2
         const initialY = parentGridSize/2
         // Adjust line by taking the half the width and height so its centered about the cell
-        const lineAdjustmentX = parentGridSize/(2*columms)
+        const lineAdjustmentX = parentGridSize/(2*columns)
         const lineAdjustmentY = parentGridSize/(2*rows)
         // Initalize line at the top left
         verticalLine.position.set(initialX + lineAdjustmentX, initialY - lineAdjustmentY,zpos)
         // Move line to correct place based on given x and y values
-        verticalLine.position.x += (x*parentGridSize/columms);
+        verticalLine.position.x += (x*parentGridSize/columns);
         verticalLine.position.y -= (y*parentGridSize/rows);
       }
       // Horizontal Line
-      else if (number == 2) {
+      else if (lineType == 2) {
         const horizontalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *1,this.parentGridSize/rows * 0.2,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *1,this.parentGridSize/rows * 0.2,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         this.scene.add(horizontalLine);
@@ -224,24 +235,24 @@ export class MazeCell{
         const initialX = -parentGridSize/2
         const initialY = parentGridSize/2
         // Adjust line by taking the half the width and height so its centered about the cell
-        const lineAdjustmentX = parentGridSize/(2*columms)
+        const lineAdjustmentX = parentGridSize/(2*columns)
         const lineAdjustmentY = parentGridSize/(2*rows)
         // Initalize line at the top left
         horizontalLine.position.set(initialX + lineAdjustmentX, initialY - lineAdjustmentY,zpos)
         // Move line to correct place based on given x and y values
-        horizontalLine.position.x += (x*parentGridSize/columms);
+        horizontalLine.position.x += (x*parentGridSize/columns);
         horizontalLine.position.y -= (y*parentGridSize/rows);
       } 
       // Corner: bottom to right/right to bottom
-      else if (number == 3) {
+      else if (lineType == 3) {
         // Horizontal line
         const horizontalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.5,this.parentGridSize/rows * 0.2,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *0.5,this.parentGridSize/rows * 0.2,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         // Vertical line
         const verticalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.2,this.parentGridSize/rows * 0.5,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *0.2,this.parentGridSize/rows * 0.5,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         this.scene.add(horizontalLine, verticalLine);
@@ -250,29 +261,29 @@ export class MazeCell{
         const initialY = parentGridSize/2
         // Adjust horizontal line by centering along y-axis but moving it to right half of x-axis
         // Adjust vertical line by centering along x-axis but moving it to lower half of y-axis
-        const horizontalLineAdjustmentX = 3*(parentGridSize/(4*columms));
+        const horizontalLineAdjustmentX = 3*(parentGridSize/(4*columns));
         const horizontalLineAdjustmentY = parentGridSize/(2*rows);
-        const verticalLineAdjustmentX = parentGridSize/(2*columms);
+        const verticalLineAdjustmentX = parentGridSize/(2*columns);
         const verticalLineAdjustmentY = 3*(parentGridSize/(4*rows));
         // Initalize lines at the top left
         horizontalLine.position.set(initialX + horizontalLineAdjustmentX, initialY - horizontalLineAdjustmentY,zpos)
         verticalLine.position.set(initialX + verticalLineAdjustmentX, initialY - verticalLineAdjustmentY,zpos)
         // Move lines to correct place based on given x and y values
-        horizontalLine.position.x += (x*parentGridSize/columms);
+        horizontalLine.position.x += (x*parentGridSize/columns);
         horizontalLine.position.y -= (y*parentGridSize/rows);
-        verticalLine.position.x += (x*parentGridSize/columms);
+        verticalLine.position.x += (x*parentGridSize/columns);
         verticalLine.position.y -= (y*parentGridSize/rows);
       }
       // Corner: bottom to left/left to bottom
-      else if(number == 4) {
+      else if(lineType == 4) {
         // Horizontal line
         const horizontalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.5,this.parentGridSize/rows * 0.2,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *0.5,this.parentGridSize/rows * 0.2,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         // Vertical line
         const verticalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.2,this.parentGridSize/rows * 0.5,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *0.2,this.parentGridSize/rows * 0.5,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         this.scene.add(horizontalLine, verticalLine);
@@ -281,29 +292,29 @@ export class MazeCell{
         const initialY = parentGridSize/2
         // Adjust horizontal line by centering along y-axis but moving it to left half of x-axis
         // Adjust vertical line by centering along x-axis but moving it to lower half of y-axis
-        const horizontalLineAdjustmentX = parentGridSize/(4*columms);
+        const horizontalLineAdjustmentX = parentGridSize/(4*columns);
         const horizontalLineAdjustmentY = parentGridSize/(2*rows);
-        const verticalLineAdjustmentX = parentGridSize/(2*columms);
+        const verticalLineAdjustmentX = parentGridSize/(2*columns);
         const verticalLineAdjustmentY = 3*(parentGridSize/(4*rows));
         // Initalize lines at the top left
         horizontalLine.position.set(initialX + horizontalLineAdjustmentX, initialY - horizontalLineAdjustmentY,zpos)
         verticalLine.position.set(initialX + verticalLineAdjustmentX, initialY - verticalLineAdjustmentY,zpos)
         // Move square to correct place based on given x and y values
-        horizontalLine.position.x += (x*parentGridSize/columms);
+        horizontalLine.position.x += (x*parentGridSize/columns);
         horizontalLine.position.y -= (y*parentGridSize/rows);
-        verticalLine.position.x += (x*parentGridSize/columms);
+        verticalLine.position.x += (x*parentGridSize/columns);
         verticalLine.position.y -= (y*parentGridSize/rows);
       }
       // Corner: top to right/right to top
-      else if(number == 5) {
+      else if(lineType == 5) {
         // Horizontal line
         const horizontalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.5,this.parentGridSize/rows * 0.2,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *0.5,this.parentGridSize/rows * 0.2,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         // Vertical line
         const verticalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.2,this.parentGridSize/rows * 0.5,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *0.2,this.parentGridSize/rows * 0.5,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         this.scene.add(horizontalLine, verticalLine);
@@ -312,30 +323,30 @@ export class MazeCell{
         const initialY = parentGridSize/2
         // Adjust horizontal line by centering along y-axis but moving it to right half of x-axis
         // Adjust vertical line by centering along x-axis but moving it to upper half of y-axis
-        const horizontalLineAdjustmentX = 3*(parentGridSize/(4*columms));
+        const horizontalLineAdjustmentX = 3*(parentGridSize/(4*columns));
         const horizontalLineAdjustmentY = parentGridSize/(2*rows);
-        const verticalLineAdjustmentX = parentGridSize/(2*columms);
+        const verticalLineAdjustmentX = parentGridSize/(2*columns);
         const verticalLineAdjustmentY = parentGridSize/(4*rows);
 
         // Initalize lines at the top left
         horizontalLine.position.set(initialX + horizontalLineAdjustmentX, initialY - horizontalLineAdjustmentY,zpos)
         verticalLine.position.set(initialX + verticalLineAdjustmentX, initialY - verticalLineAdjustmentY,zpos)
         // Move lines to correct place based on given x and y values
-        horizontalLine.position.x += (x*parentGridSize/columms);
+        horizontalLine.position.x += (x*parentGridSize/columns);
         horizontalLine.position.y -= (y*parentGridSize/rows);
-        verticalLine.position.x += (x*parentGridSize/columms);
+        verticalLine.position.x += (x*parentGridSize/columns);
         verticalLine.position.y -= (y*parentGridSize/rows);
       }
       // Corner: top to left/left to top
-      else if(number == 6) {
+      else if(lineType == 6) {
         // Horizontal line
         const horizontalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.5,this.parentGridSize/rows * 0.2,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *0.5,this.parentGridSize/rows * 0.2,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         // Vertical line
         const verticalLine = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms *0.2,this.parentGridSize/rows * 0.5,depth),
+          new THREE.BoxGeometry(this.parentGridSize/columns *0.2,this.parentGridSize/rows * 0.5,depth),
           new THREE.MeshLambertMaterial({color: colour})
         );
         this.scene.add(horizontalLine, verticalLine);
@@ -344,30 +355,30 @@ export class MazeCell{
         const initialY = parentGridSize/2
         // Adjust horizontal line by centering along y-axis but moving it to left half of x-axis
         // Adjust vertical line by centering along x-axis but moving it to upper half of y-axis
-        const horizontalLineAdjustmentX = (parentGridSize/(4*columms));
+        const horizontalLineAdjustmentX = (parentGridSize/(4*columns));
         const horizontalLineAdjustmentY = parentGridSize/(2*rows);
-        const verticalLineAdjustmentX = parentGridSize/(2*columms);
+        const verticalLineAdjustmentX = parentGridSize/(2*columns);
         const verticalLineAdjustmentY = parentGridSize/(4*rows);
 
         // Initalize lines at the top left
         horizontalLine.position.set(initialX + horizontalLineAdjustmentX, initialY - horizontalLineAdjustmentY,zpos)
         verticalLine.position.set(initialX + verticalLineAdjustmentX, initialY - verticalLineAdjustmentY,zpos)
         // Move lines to correct place based on given x and y values
-        horizontalLine.position.x += (x*parentGridSize/columms);
+        horizontalLine.position.x += (x*parentGridSize/columns);
         horizontalLine.position.y -= (y*parentGridSize/rows);
-        verticalLine.position.x += (x*parentGridSize/columms);
+        verticalLine.position.x += (x*parentGridSize/columns);
         verticalLine.position.y -= (y*parentGridSize/rows);
       }
     }
     
     // Function
-    fillCellColour(x,y, parentGridSize, columms ,rows, colour, backtrack) {
+    fillCellColour(x: number, y: number, parentGridSize: number, columms: number ,rows: number, colour: number, backtrack: boolean) {
       // If its backtracking !!!!! Complicated for no reason just because i want corner pieces
       if(backtrack) {
         // This means this is the start cell (perspective is now from the end of the maze)
         if(this.previousCell == null) {
           // If next cell was to the right put horizontal line
-          if(this.nextCell.rowNumber == y) {
+          if(this.nextCell?.rowNumber == y) {
             this.fillBackTrackLine(2,x,y,parentGridSize,columms,rows,colour);
             return
           }
@@ -464,15 +475,15 @@ export class MazeCell{
       else {
         // Create coloured square
         const square = new THREE.Mesh(
-          new THREE.BoxBufferGeometry(this.parentGridSize/columms + 0.7,this.parentGridSize/rows + 0.7,1),
+          new THREE.BoxGeometry(this.parentGridSize/columms + 0.7,this.parentGridSize/rows + 0.7,1),
           new THREE.MeshLambertMaterial({color: colour})
         );
         this.scene.add(square)
     
         // Store square object so it can be deleted/removed from scene later
-        if(colour == greenColour) {
+        if(colour == Colours.greenColour) {
           this.cellObjects.greenSquare = square;
-        } else if(colour == greyColour) {
+        } else if(colour == Colours.greyColour) {
           this.cellObjects.greySquare = square;
         }
     
@@ -494,7 +505,7 @@ export class MazeCell{
     }
     
     // Function removes walls, is used when generating the maze
-    removeWall(cell1, cell2) {
+    removeWall(cell1: MazeCell, cell2: MazeCell) {
       // Use this to get order of cells, (which one is on the left/right or which one is on above/below)
       let x = (cell1.columnNumber - cell2.columnNumber)
       let y = (cell1.rowNumber - cell2.rowNumber)
@@ -550,20 +561,20 @@ export class MazeCell{
     }
   
     // Probably should extend functionality of this function, but its just not needed
-    removeCellColour(cell,colour) {
-      if (colour === greenColour) {
+    removeCellColour(cell: MazeCell,colour: number) {
+      if (colour === Colours.greenColour) {
          let obj = cell.cellObjects.greenSquare;
          this.removeObject3D(obj);
-      }else if (colour === greyColour) {
+      }else if (colour === Colours.greyColour) {
         cell.highlighted = false;
-        cell.grey = false;
+        cell.greyColour = false;
         let obj = cell.cellObjects.greySquare;
         this.removeObject3D(obj);
       }
     }
   
     // Checks to see if cell needs walls updated, used when generating maze
-    updateWalls(size,rows,columns) {
+    updateWalls(size: number,rows: number,columns: number) {
       if (this.walls.topWall)
         this.drawTopWall(this.columnNumber,this.rowNumber, size, columns, rows) 
       if (this.walls.bottomWall)
@@ -573,18 +584,22 @@ export class MazeCell{
       if (this.walls.rightWall)
         this.drawRightWall(this.columnNumber,this.rowNumber, size, columns, rows) 
       if (this.connected)
-        this.fillCellColour(this.columnNumber,this.rowNumber, size, columns,rows, greenColour,false)
+        this.fillCellColour(this.columnNumber,this.rowNumber, size, columns,rows, Colours.greenColour,false)
       if (this.highlighted)
-        this.fillCellColour(this.columnNumber,this.rowNumber, size, columns, rows, greyColour,false)
+        this.fillCellColour(this.columnNumber,this.rowNumber, size, columns, rows, Colours.greyColour,false)
     }
 
-    // Removes the object 
-    removeObject3D(object3D) {
-        if (!(object3D instanceof THREE.Object3D)){ 
-            return false;
+    // General function to remove objects from scene 
+    removeObject3D(object3D: THREE.Mesh | null): boolean {
+        if (!(object3D instanceof THREE.Mesh)) {
+          return false;
         }
+
         // For better memory management and performance
-        object3D.geometry.dispose();
+        if(object3D.geometry) {
+          object3D.geometry.dispose();
+        }
+        
         if (object3D.material instanceof Array) {
             // For better memory management and performance
             object3D.material.forEach(material => material.dispose());
@@ -595,5 +610,96 @@ export class MazeCell{
         // Default parent will be the scene so this good
         object3D.removeFromParent(); 
         return true;
+    }
+
+    // Getters and Setters -------------------------------------------------------------------------------------------
+    setConnected(value:boolean) {
+      this.connected = value;
+    }
+
+    getColumnNumber():number {
+      return this.columnNumber;
+    }
+
+    getRowNumber():number {
+      return this.rowNumber
+    }
+
+    setGScore(value:number){
+      this.gscore = value;
+    }
+
+    setFScore(value:number){
+      this.fscore = value;
+    }
+
+    getGScore():number{
+      return this.gscore;
+    }
+
+    getFScore():number{
+      return this.fscore;
+    }
+
+    setNextCell(value:MazeCell){
+      this.nextCell = value;
+    }
+
+    getNextCell():MazeCell | null{
+      return this.nextCell;
+    }
+
+    setPreviousCell(value: MazeCell){
+      this.previousCell = value;
+    }
+
+    getPreviousCell():MazeCell | null{
+      
+      return this.previousCell;
+    }
+
+    setGreenColour(value:boolean){
+      this.greenColour = value;
+    }
+
+    setGreyColour(value:boolean){
+      this.greyColour = value;
+    }
+
+    setWalls(wall: number, value: boolean) {
+      // 1: Top wall
+      // 2: Right wall
+      // 3: Bottom wall
+      // 4: Left wall
+      if(wall == 1) {
+        this.walls.topWall = value;
+      } else if(wall == 2) {
+        this.walls.rightWall = value;
+      } else if(wall == 3) {
+        this.walls.bottomWall = value;
+      } else if(wall == 4) {
+        this.walls.leftWall = value;
+      } else {
+        console.log("wall param is invalid")
+      }
+    }
+
+    getWalls(wall: number): boolean | null{
+      // 1: Top wall
+      // 2: Right wall
+      // 3: Bottom wall
+      // 4: Left wall
+      if(wall == 1) {
+        return this.walls.topWall;
+      } else if(wall == 2) {
+        return this.walls.rightWall;
+      } else if(wall == 3) {
+        return this.walls.bottomWall;
+      } else if(wall == 4) {
+        return this.walls.leftWall;
+      } else {
+        console.log("wall param is invalid")
+        return null;
+      }
     }
   }

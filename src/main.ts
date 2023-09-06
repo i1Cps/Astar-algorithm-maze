@@ -1,10 +1,9 @@
-import './style.css'
 import * as THREE from 'three';
 import { OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import { AxesHelper } from 'three';
-import {MazeGen} from './mazeGen.js';
-import { AStarMazeSolver } from './aStarMazeSolver';
-import KeyboardInputs from './keyboardInputs'
+import {Maze} from './maze.js';
+import { AStarMazeSolver } from './aStarMazeSolver.js';
+import KeyboardInputs from './keyboardInputs.js'
 
 // MAIN
 
@@ -14,18 +13,25 @@ const sizes = {
   height: window.innerHeight
 };
 
-// STANDARD GLOBAL VARIABLES
-var scene, camera, renderer, controls;
-var clock = new THREE.Clock();
+const boardSize = 200;
+const rows = 10;
+const columns = 10;
+const spherical = new THREE.Spherical();
+
+
+// STANDARD GLOBAL CONSTANTS AND VARIABLES
+var scene: THREE.Scene;
+var camera: THREE.PerspectiveCamera;
+var renderer: THREE.WebGLRenderer;
+var controls: OrbitControls; 
+var keyboardInput: KeyboardInputs;
 KeyboardInputs.initialize();
 
-// CUSTOM GLOBAL VARIABLES
+// CUSTOM GLOBAL CONSTANTS AND VARIABLES
 var topCamera;
-let solver;
-let maze;
-//CUSTOM GLOBAL CONSTANTS
-const yhhhhhhMan = "getslikethat"
-
+let solver: AStarMazeSolver;
+let maze: Maze;
+let ticktock: boolean
 
 init();
 animate();
@@ -47,9 +53,13 @@ function init() {
   camera.position.set(0,10,250);
   
   // RENDERER
-  renderer = new THREE.WebGLRenderer({
-    canvas: document.querySelector('#bg'),
-  });
+  const canvasElement = document.querySelector('#bg') as HTMLCanvasElement;
+  if (canvasElement) {
+    renderer = new THREE.WebGLRenderer({
+      canvas: canvasElement,
+    });
+  }
+  
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(sizes.width, sizes.height);
 
@@ -70,6 +80,11 @@ function init() {
 
   // CONTROLS
   controls = new OrbitControls(camera, renderer.domElement);
+  controls.maxAzimuthAngle = 0.5;
+  controls.minAzimuthAngle = -0.5;
+  controls.maxPolarAngle = 2.05;
+  controls.minPolarAngle = 1.10;
+
 
   // LIGHT
   const pointLight = new THREE.PointLight(0xffffff);
@@ -88,37 +103,37 @@ function init() {
   const spaceTexture = new THREE.TextureLoader().load('space.jpg');
   scene.background = spaceTexture;
 
-  maze = new MazeGen(200, 10, 10,scene);
+  maze = new Maze(200, 10, 10,scene);
   maze.setup()
-  //maze.createMaze()
 }
 
 //Animate
 function animate() {
   // Generate the maze
-  if(maze.mazeComplete === false) {
+  if(maze.getMazeComplete() === false) {
     maze.createMaze()
   }
   else {
     // If maze is not currently being solved, initialize the solving setup function
-    if(maze.solving == false) {
-      maze.solving = true;
-      let start = maze.grid[0][0]
-      let finish = maze.grid[maze.rows-1][maze.columns-1]
-      let mazeSizes = [maze.size, maze.rows, maze.columns]
-
-      solver = new AStarMazeSolver(start,finish, maze.grid, mazeSizes)
+    if(maze.getSolving() == false) {
+      maze.setSolving(true);
+      let mazeGrid = maze.getMazeGrid();
+      let start = mazeGrid[0][0]
+      let finish = mazeGrid[rows-1][columns-1]
+      let mazeSizes = [boardSize, rows, columns]
+      solver = new AStarMazeSolver(start,finish, mazeGrid, mazeSizes)
       solver.setup()
     }
 
     // recusively call
     else {
-      if(solver.solved == false) {
+      if(solver.getSolved() == false) {
         solver.solveStep();
-      } else if(solver.backtracking == true) {
+      } else if(solver.getBackTracking() == true) {
         solver.solveStep();
       }
     }
+    
   }
   
   window.requestAnimationFrame(animate)
@@ -130,6 +145,8 @@ function update() {
   KeyboardInputs.update();
   controls.update();
 }
+
+
 
 function render() {
     renderer.render(scene, camera)
