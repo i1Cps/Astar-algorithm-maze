@@ -1,6 +1,7 @@
-<!-- ⚠️ This README has been generated from the file(s) "blueprint.md" ⚠️--><h1 align="center">astar-algorithm-maze</h1>
+<h1 align="center"><a href="https://maze.theo-moore-calters.online">astar-algorithm-maze</a></h1>
+
 <p align="center">
-  <img src="images/maze.png" alt="Logo" width="550" height="auto" />
+  <img src="images/maze.png" alt="Logo" width="450" height="auto" />
 </p>
 
 
@@ -21,6 +22,10 @@
 ## ➤ ::pencil:: About The Project
 
 [This project](maze.theo-moore-calters.online) showcases the power of the [A* search algorithm](https://en.wikipedia.org/wiki/A*_search_algorithm) through interactive maze solving and generation. Built using TypeScript, Three.js and React, it offers a visually engaging demonstration of pathfinding in action. Users can explore the process of maze generation and watch as the A* algorithm efficiently navigates these intricate labyrinths. This project provides both an educational experience and an intriguing glimpse into the world of algorithmic problem-solving.
+
+<p align="center">
+  <img src="images/mazegif.gif" alt="Logo" width="650" height="auto" />
+</p>
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/cloudy.png)](#rocket-dependencies)
 
