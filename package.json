@@ -1,7 +1,10 @@
 {
-  "name": "mazes",
+  "name": "astar-algorithm-maz",
+  "description": "This App generates then solves a maze using an A* search algorithm. Parameters can be customised by user",
+  "author": "Theo Moore-Calters theo2001@hotmail.co.uk",
+  "license": "MIT",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
