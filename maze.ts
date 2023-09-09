@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { MazeCell } from "./mazeCell";
+import { MazeCell } from "./src/mazeCell";
 import { Colours } from "./interfaces/colours";
 
 // This class contains the logic for the maze itself
