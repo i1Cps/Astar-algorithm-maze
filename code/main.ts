@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { Maze } from "./src/maze.js";
+import { Maze } from "./maze.js";
 import { AStarMazeSolver } from "./aStarMazeSolver.js";
 
 // MAIN

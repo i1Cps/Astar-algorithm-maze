@@ -1,4 +1,4 @@
-import { MazeCell } from "./src/mazeCell";
+import { MazeCell } from "./mazeCell";
 import { Colours } from "./interfaces/colours";
 
 // Class using an A* algorithm to solve a maze
