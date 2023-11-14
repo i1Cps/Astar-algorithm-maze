@@ -20,11 +20,13 @@ const UserInterface: React.FC<UserInterfaceProps> = ({ regenerateMaze }) => {
 
   // When user inputs new row and column numbers
   const handleBoardRowsAndColumnsInput = (input: number) => {
-    setBoardRowsAndColumnsInput(input);
+    const assertInput = Math.min(Math.max(input,5),20)
+    setBoardRowsAndColumnsInput(assertInput);
   };
   // When user inputs new board size
   const handleBoardSizeInput = (input: number) => {
-    setBoardSizeInput(input);
+    const assertInput = Math.min(Math.max(input,100),280)
+    setBoardSizeInput(assertInput);
   };
 
   // Prevents button spam
